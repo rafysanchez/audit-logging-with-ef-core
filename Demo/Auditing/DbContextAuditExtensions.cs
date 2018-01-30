@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -9,79 +10,53 @@ namespace Demo.Auditing
 {
     internal static class DbContextAuditExtensions
     {
-        public static void SaveChangesWithAudit(this DbContext dbContext, object rootEntity)
+        public static void SaveChangesWithAudit(this DbContext dbContext, object rootEntity = null)
         {
             var userName = Environment.GetEnvironmentVariable("USERNAME");
-            var now = DateTime.Now;
-            var entityEntries = dbContext.ChangeTracker.Entries<IAuditable>().ToList();
-            var root = dbContext.ChangeTracker.Entries().Single(entry => entry.Entity == rootEntity);
+            var now = DateTimeOffset.Now;
+            var auditableEntries = dbContext.GetAuditableEntries();
+            var root = dbContext.GetRootEntry(rootEntity);
 
-
-            foreach (var changedEntity in entityEntries)
+            foreach (var entry in auditableEntries)
             {
-                if (changedEntity.State == EntityState.Unchanged) continue;
+                if (entry.IsUnchanged()) continue;
 
-                var properties = changedEntity.Metadata.GetProperties().ToList();
+                var entity = entry.Entity;
 
-                var propertyValues = properties.Where(NonAuditProperty).Select(p => new
-                    {
-                        p.Name,
-                        OldValue = OldValue(changedEntity, p.Name),
-                        CurrentValue = CurrentValue(changedEntity, p.Name)
-                    })
-                    .ToList();
+                entity.ChangedAt = now;
+                entity.ChangedBy = userName;
 
-                var newValues = propertyValues.ToDictionary(v => v.Name, v => v.CurrentValue);
-
-                var changedValues = propertyValues.Where(arg => arg.CurrentValue != arg.OldValue).ToList();
-
-                var oldValues = changedValues
-                    .ToDictionary(v => v.Name, v => v.OldValue);
-                var currentValues = changedValues
-                    .ToDictionary(v => v.Name, v => v.CurrentValue);
-
-
-                var auditLogs = dbContext.Set<AuditLog>();
-                if (changedEntity.State == EntityState.Added)
+                if (entry.IsCreated())
                 {
-                    changedEntity.Property("CreatedBy").CurrentValue = userName;
-                    changedEntity.Property("CreatedAt").CurrentValue = now;
-
-                    var log = new AuditLog
-                    {
-                        EntityName = changedEntity.Entity.GetType().Name,
-                        EntityId = PrimaryKeyValue(changedEntity),
-                        OldValue = null,
-                        NewValue = JsonConvert.SerializeObject(newValues),
-                        ChangedAt = now,
-                        ChangedBy = userName,
-                        State = changedEntity.State.ToString("G"),
-                        RootEntityName = root.Entity.GetType().Name,
-                        RootEntityId = PrimaryKeyValue(root)
-                    };
-
-                    auditLogs.Add(log);
+                    entity.CreatedAt = now;
+                    entity.CreatedBy = userName;
                 }
-                else if (changedEntity.State == EntityState.Modified)
+                else if (entry.IsDeleted())
                 {
-                    changedEntity.Property("UpdatedBy").CurrentValue = userName;
-                    changedEntity.Property("UpdatedAt").CurrentValue = now;
-
-                    var log = new AuditLog
-                    {
-                        EntityName = changedEntity.Entity.GetType().Name,
-                        EntityId = PrimaryKeyValue(changedEntity),
-                        OldValue = JsonConvert.SerializeObject(oldValues),
-                        NewValue = JsonConvert.SerializeObject(currentValues),
-                        ChangedAt = now,
-                        ChangedBy = userName,
-                        State = changedEntity.State.ToString("G"),
-                        RootEntityName = root.Entity.GetType().Name,
-                        RootEntityId = PrimaryKeyValue(root)
-                    };
-
-                    auditLogs.Add(log);
+                    entity.DeactivatedBy = userName;
                 }
+
+                var propertyValues = entry.GetPropertyValues();
+                var newValues = propertyValues.ToDictionary(v => v.CurrentValue);
+                var changedValues = propertyValues.GetChangedValues();
+                var oldValues = changedValues.ToDictionary(v => v.OldValue);
+                var oldValue = entry.IsModified() ? oldValues.Serialize() : null;
+
+                var log = new AuditLog
+                {
+                    EntityName = entity.TypeName(),
+                    EntityId = entry.PrimaryKeyValue(),
+                    OldValue = oldValue,
+                    NewValue = newValues.Serialize(),
+                    ChangedAt = now,
+                    ChangedBy = userName,
+                    State = entry.State.ToString("G"),
+                    RootEntityName = root?.TypeName(),
+                    RootEntityId = root?.PrimaryKeyValue()
+                };
+
+                dbContext.Set<AuditLog>().Add(log);
+
             }
 
             dbContext.SaveChanges();
