@@ -3,7 +3,7 @@ using Demo.Auditing;
 
 namespace Demo.Models
 {
-    public class Student : IAuditable
+    public class Student : Auditable
     {
         public int Id { get; set; }
         public string Name { get; set; }

@@ -2,7 +2,7 @@
 
 namespace Demo.Models
 {
-    public class Class : IAuditable
+    public class Class : Auditable
     {
         public int Id { get; set; }
         public string Name { get; set; }
