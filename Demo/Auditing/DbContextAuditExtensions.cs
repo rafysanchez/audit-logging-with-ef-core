@@ -87,27 +87,111 @@ namespace Demo.Auditing
             dbContext.SaveChanges();
         }
 
-        private static string PrimaryKeyValue(EntityEntry changedEntity)
+        private static EntityEntry GetRootEntry(this DbContext dbContext, object rootEntity)
         {
-            var primaryKey = changedEntity.Metadata.FindPrimaryKey();
-            var primaryKeyValue = primaryKey.Properties[0].PropertyInfo.GetValue(changedEntity.Entity).ToString();
-            return primaryKeyValue;
+            if (rootEntity == null) return null;
+            return dbContext.ChangeTracker.Entries().Single(entry => entry.Entity == rootEntity);
         }
 
-        private static bool NonAuditProperty(IProperty p)
+        private static IEnumerable<EntityEntry<IAuditable>> GetAuditableEntries(this DbContext context)
         {
-            var auditProperties = new[] {"CreatedBy", "CreatedAt", "UpdatedBy", "UpdatedAt"};
-            return !auditProperties.Contains(p.Name);
+            return context.ChangeTracker.Entries<IAuditable>().ToList();
         }
 
-        private static string OldValue(EntityEntry<IAuditable> changedEntity, string name)
+        private static bool IsDeleted(this EntityEntry entry)
         {
-            return changedEntity.Property(name).OriginalValue?.ToString();
+            return entry.State == EntityState.Deleted;
         }
 
-        private static string CurrentValue(EntityEntry<IAuditable> changedEntity, string name)
+        private static bool IsCreated(this EntityEntry entry)
         {
-            return changedEntity.Property(name).CurrentValue?.ToString();
+            return entry.State == EntityState.Added;
+        }
+
+        private static bool IsModified(this EntityEntry entry)
+        {
+            return entry.State == EntityState.Modified;
+        }
+
+        private static bool IsUnchanged(this EntityEntry entry)
+        {
+            return entry.State == EntityState.Unchanged;
+        }
+
+        private static List<AuditProperty> GetChangedValues(this IEnumerable<AuditProperty> properties)
+        {
+            return properties.Where(arg => arg.CurrentValue != arg.OldValue).ToList();
+        }
+
+        private static Dictionary<string, string> ToDictionary(this IEnumerable<AuditProperty> properties,
+            Func<AuditProperty, string> value)
+        {
+            return properties.ToDictionary(v => v.Name, value);
+        }
+
+        private static List<AuditProperty> GetPropertyValues(this EntityEntry<IAuditable> entry)
+        {
+            var properties = entry.Metadata.GetProperties().ToList();
+
+            return properties
+                .Where(NonAuditProperty)
+                .Select(property => AuditProperty.From(entry, property))
+                .ToList();
+        }
+
+        private static string TypeName(this EntityEntry entry)
+        {
+            return entry.Entity.GetType().Name;
+        }
+
+        private static string Serialize(this Dictionary<string, string> values)
+        {
+            return JsonConvert.SerializeObject(values);
+        }
+
+        private static string TypeName(this IAuditable auditable)
+        {
+            return auditable.GetType().Name;
+        }
+
+        private static string PrimaryKeyValue(this EntityEntry entry)
+        {
+            var primaryKey = entry.Metadata.FindPrimaryKey();
+            return primaryKey.Properties[0].PropertyInfo.GetValue(entry.Entity).ToString();
+        }
+
+        private static bool NonAuditProperty(this IProperty property)
+        {
+            var auditProperties = new[]
+                {"CreatedBy", "CreatedAt", "ChangedBy", "ChangedAt", "DeactivatedBy", "DeactivatedAt"};
+            return !auditProperties.Contains(property.Name);
+        }
+
+        public static string OldValue(this EntityEntry entry, string name)
+        {
+            return entry.Property(name).OriginalValue?.ToString();
+        }
+
+        public static string CurrentValue(this EntityEntry entry, string name)
+        {
+            return entry.Property(name).CurrentValue?.ToString();
+        }
+    }
+
+    internal class AuditProperty
+    {
+        public string Name { get; set; }
+        public string OldValue { get; set; }
+        public string CurrentValue { get; set; }
+
+        public static AuditProperty From(EntityEntry<IAuditable> entry, IProperty property)
+        {
+            return new AuditProperty
+            {
+                Name = property.Name,
+                OldValue = entry.OldValue(property.Name),
+                CurrentValue = entry.CurrentValue(property.Name)
+            };
         }
     }
 }
