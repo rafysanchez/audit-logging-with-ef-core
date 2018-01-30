@@ -10,7 +10,7 @@ namespace Demo.Auditing
         public string EntityId { get; set; }
         public string OldValue { get; set; }
         public string NewValue { get; set; }
-        public DateTime ChangedAt { get; set; }
+        public DateTimeOffset ChangedAt { get; set; }
         public string State { get; set; }
         public string ChangedBy { get; set; }
         public string RootEntityId { get; set; }

@@ -1,5 +1,4 @@
 ﻿using Demo.Auditing;
-using Demo.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Demo.Models
@@ -10,12 +9,6 @@ namespace Demo.Models
         public DbSet<Class> Classes { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
 
-        public StudentDbContext(DbContextOptions<DbContext> options) : base(options) { }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Map(new AuditablePropertiesConfig());
-            base.OnModelCreating(modelBuilder);
-        }
+        public StudentDbContext(DbContextOptions options) : base(options) { }
     }
 }
