@@ -22,8 +22,7 @@ namespace Demo
                         Name = "name",
                         Classes = new List<Class> { new Class { Id = 1, Name = "Math" } }
                     };
-                    students.Add(student);
-                    students.SaveChanges(student);
+                    students.Create(student);
                 }
 
                 using (var students = new StudentRepository(connection))
@@ -31,7 +30,7 @@ namespace Demo
                     var student = students.Get(1);
                     student.Name = "student";
                     student.Classes.Add(new Class { Id = 2, Name = "History" });
-                    students.SaveChanges(student);
+                    students.Update(student);
                 }
 
                 new StudentReport(connection, 1).Write();
