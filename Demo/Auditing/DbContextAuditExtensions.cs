@@ -155,9 +155,9 @@ namespace Demo.Auditing
 
     internal class AuditProperty
     {
-        public string Name { get; set; }
-        public string OldValue { get; set; }
-        public string CurrentValue { get; set; }
+        public string Name { get; private set; }
+        public string OldValue { get; private set; }
+        public string CurrentValue { get; private set; }
 
         public static AuditProperty From(EntityEntry<IAuditable> entry, IProperty property)
         {

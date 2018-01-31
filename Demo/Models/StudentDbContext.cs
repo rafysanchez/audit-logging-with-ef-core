@@ -1,8 +1,11 @@
-﻿using Demo.Auditing;
+﻿using System.Diagnostics.CodeAnalysis;
+using Demo.Auditing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Demo.Models
 {
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public class StudentDbContext : DbContext
     {
         public DbSet<Student> Users { get; set; }

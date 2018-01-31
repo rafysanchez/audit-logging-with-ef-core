@@ -1,5 +1,8 @@
-﻿namespace Demo.Reporting
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Demo.Reporting
 {
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     internal class AuditEntry
     {
         public string EntityName { get; set; }
