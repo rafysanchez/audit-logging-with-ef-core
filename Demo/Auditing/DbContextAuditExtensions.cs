@@ -22,20 +22,6 @@ namespace Demo.Auditing
                 if (entry.IsUnchanged()) continue;
 
                 var entity = entry.Entity;
-
-                entity.ChangedAt = now;
-                entity.ChangedBy = userName;
-
-                if (entry.IsCreated())
-                {
-                    entity.CreatedAt = now;
-                    entity.CreatedBy = userName;
-                }
-                else if (entry.IsDeleted())
-                {
-                    entity.DeactivatedBy = userName;
-                }
-
                 var propertyValues = entry.GetPropertyValues();
                 var newValues = propertyValues.ToDictionary(v => v.CurrentValue);
                 var changedValues = propertyValues.GetChangedValues();
