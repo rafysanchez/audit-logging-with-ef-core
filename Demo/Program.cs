@@ -20,21 +20,29 @@ namespace Demo
 
                 var classes = new ClassRepository(context);
                 classes.Create(new Class {Id = 1, Name = "Math"});
+                classes.Create(new Class {Id = 2, Name = "History"});
 
                 var students = new StudentRepository(context);
+
                 var math = classes.Get(1);
-                var mathStudent = new Student
+                var history = classes.Get(2);
+
+                var jim = new Student
                 {
                     Id = 1,
-                    Name = "math student",
-                    Classes = new List<Class> {math}
+                    Name = "Jim Doe",
+                    Classes = new List<Class> {math, history}
                 };
-                students.Create(mathStudent);
+                students.Create(jim);
 
-                var historyStudent = students.Get(1);
-                historyStudent.Name = "history student";
-                historyStudent.Classes.Add(new Class {Id = 2, Name = "History"});
-                students.Update(historyStudent);
+                var nextOfKins = students.Get(1);
+                nextOfKins.NextOfKins =
+                    new List<NextOfKin> {NextOfKin.Create("John Doe"), NextOfKin.Create("Jane Doe")};
+                students.Update(nextOfKins);
+
+                var residence = students.Get(1);
+                nextOfKins.Hometown = City.Create("Oslo");
+                students.Update(nextOfKins);
 
                 new StudentReport(connection, 1).Write();
                 new ClassesReport(connection).Write();
