@@ -35,8 +35,12 @@ namespace Demo
                 historyStudent.Name = "history student";
                 historyStudent.Classes.Add(new Class {Id = 2, Name = "History"});
                 students.Update(historyStudent);
+
                 new StudentReport(connection, 1).Write();
                 new ClassesReport(connection).Write();
+
+                Console.Out.WriteLine("Classes: " + context.Classes.Count());
+                Console.Out.WriteLine("Students: " + context.Students.Count());
             }
         }
     }
