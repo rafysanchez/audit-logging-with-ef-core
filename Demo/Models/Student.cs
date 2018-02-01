@@ -5,7 +5,7 @@ using Demo.Auditing;
 namespace Demo.Models
 {
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    public class Student : Auditable
+    public class Student : IAuditable
     {
         public int Id { get; set; }
         public string Name { get; set; }

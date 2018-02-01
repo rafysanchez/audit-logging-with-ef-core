@@ -30,13 +30,13 @@ namespace Demo.Reporting
         {
             var logs = GetEntries();
 
-            return 
+            return
                 from log in logs
                 let newValues = NewValues(log)
                 let oldValues = OldValues(log)
                 from property in InterestingProperties(newValues)
-                let oldValue = oldValues?[property]
-                let newValue = newValues[property]
+                let oldValue = Value(oldValues, property)
+                let newValue = Value(newValues, property)
                 select HistoricEntry.Create(log, property, oldValue, newValue);
         }
 
@@ -44,6 +44,14 @@ namespace Demo.Reporting
         {
             var sql = GetSql();
             return connection.Query<AuditEntry>(sql);
+        }
+
+        private static string Value(IReadOnlyDictionary<string, string> values, string property)
+        {
+            if (values == null) return null;
+            if (!values.TryGetValue(property, out var value)) return null;
+
+            return value;
         }
 
         private static IEnumerable<string> InterestingProperties(Dictionary<string, string> newValues)

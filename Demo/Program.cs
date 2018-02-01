@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Demo.Models;
 using Demo.Reporting;
 using Demo.Repositories;
@@ -14,27 +16,31 @@ namespace Demo
             {
                 connection.Open();
 
-                using (var students = new StudentRepository(connection))
-                {
-                    var student = new Student
-                    {
-                        Id = 1,
-                        Name = "name",
-                        Classes = new List<Class> { new Class { Id = 1, Name = "Math" } }
-                    };
-                    students.Create(student);
-                }
+                var context = StudentDbContext.Create(connection);
 
-                using (var students = new StudentRepository(connection))
+                var classes = new ClassRepository(context);
+                classes.Create(new Class {Id = 1, Name = "Math"});
+
+                var students = new StudentRepository(context);
+                var math = classes.Get(1);
+                var mathStudent = new Student
                 {
-                    var student = students.Get(1);
-                    student.Name = "student";
-                    student.Classes.Add(new Class { Id = 2, Name = "History" });
-                    students.Update(student);
-                }
+                    Id = 1,
+                    Name = "math student",
+                    Classes = new List<Class> {math}
+                };
+                students.Create(mathStudent);
+
+                var historyStudent = students.Get(1);
+                historyStudent.Name = "history student";
+                historyStudent.Classes.Add(new Class {Id = 2, Name = "History"});
+                students.Update(historyStudent);
 
                 new StudentReport(connection, 1).Write();
                 new ClassesReport(connection).Write();
+
+                Console.Out.WriteLine("Classes: " + context.Classes.Count());
+                Console.Out.WriteLine("Students: " + context.Students.Count());
             }
         }
     }

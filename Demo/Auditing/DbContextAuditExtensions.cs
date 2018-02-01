@@ -22,41 +22,43 @@ namespace Demo.Auditing
                 if (entry.IsUnchanged()) continue;
 
                 var entity = entry.Entity;
-
-                entity.ChangedAt = now;
-                entity.ChangedBy = userName;
-
-                if (entry.IsCreated())
-                {
-                    entity.CreatedAt = now;
-                    entity.CreatedBy = userName;
-                }
-                else if (entry.IsDeleted())
-                {
-                    entity.DeactivatedBy = userName;
-                }
-
                 var propertyValues = entry.GetPropertyValues();
                 var newValues = propertyValues.ToDictionary(v => v.CurrentValue);
                 var changedValues = propertyValues.GetChangedValues();
-                var oldValues = changedValues.ToDictionary(v => v.OldValue);
-                var oldValue = entry.IsModified() ? oldValues.Serialize() : null;
 
-                var log = new AuditLog
+                if (changedValues.Any() || entry.IsCreated())
                 {
-                    EntityName = entity.TypeName(),
-                    EntityId = entry.PrimaryKeyValue(),
-                    OldValue = oldValue,
-                    NewValue = newValues.Serialize(),
-                    ChangedAt = now,
-                    ChangedBy = userName,
-                    State = entry.State.ToString("G"),
-                    RootEntityName = root?.TypeName(),
-                    RootEntityId = root?.PrimaryKeyValue()
-                };
+                    var oldValues = changedValues.ToDictionary(v => v.OldValue);
+                    var oldValue = entry.IsModified() ? oldValues.Serialize() : null;
 
-                dbContext.Set<AuditLog>().Add(log);
+                    var log = new AuditLog
+                    {
+                        EntityName = entity.TypeName(),
+                        EntityId = entry.PrimaryKeyValue(),
+                        OldValue = oldValue,
+                        NewValue = newValues.Serialize(),
+                        ChangedAt = now,
+                        ChangedBy = userName,
+                        State = entry.State.ToString("G"),
+                        RootEntityName = root?.TypeName(),
+                        RootEntityId = root?.PrimaryKeyValue()
+                    };
 
+                    dbContext.Set<AuditLog>().Add(log);
+
+                    entry.Property<DateTimeOffset>("ChangedAt").CurrentValue = now;
+                    entry.Property<string>("ChangedBy").CurrentValue = userName;
+
+                    if (entry.IsCreated())
+                    {
+                        entry.Property<DateTimeOffset>("CreatedAt").CurrentValue = now;
+                        entry.Property<string>("CreatedBy").CurrentValue = userName;
+                    }
+                    else if (entry.IsDeleted())
+                    {
+                        entry.Property<string>("DeactivatedBy").CurrentValue = userName;
+                    }
+                }
             }
 
             dbContext.SaveChanges();
@@ -109,7 +111,7 @@ namespace Demo.Auditing
             var properties = entry.Metadata.GetProperties().ToList();
 
             return properties
-                .Where(NonAuditProperty)
+                .Where(NonAuditableProperty)
                 .Select(property => AuditProperty.From(entry, property))
                 .ToList();
         }
@@ -135,11 +137,9 @@ namespace Demo.Auditing
             return primaryKey.Properties[0].PropertyInfo.GetValue(entry.Entity).ToString();
         }
 
-        private static bool NonAuditProperty(this IProperty property)
+        private static bool NonAuditableProperty(this IProperty property)
         {
-            var auditProperties = new[]
-                {"CreatedBy", "CreatedAt", "ChangedBy", "ChangedAt", "DeactivatedBy", "DeactivatedAt"};
-            return !auditProperties.Contains(property.Name);
+            return !property.IsShadowProperty;
         }
 
         public static string OldValue(this EntityEntry entry, string name)
