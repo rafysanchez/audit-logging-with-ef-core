@@ -109,7 +109,7 @@ namespace Demo.Auditing
             var properties = entry.Metadata.GetProperties().ToList();
 
             return properties
-                .Where(NonAuditProperty)
+                .Where(NonAuditableProperty)
                 .Select(property => AuditProperty.From(entry, property))
                 .ToList();
         }
@@ -135,7 +135,7 @@ namespace Demo.Auditing
             return primaryKey.Properties[0].PropertyInfo.GetValue(entry.Entity).ToString();
         }
 
-        private static bool NonAuditProperty(this IProperty property)
+        private static bool NonAuditableProperty(this IProperty property)
         {
             var auditProperties = new[]
                 {"CreatedBy", "CreatedAt", "ChangedBy", "ChangedAt", "DeactivatedBy", "DeactivatedAt"};
