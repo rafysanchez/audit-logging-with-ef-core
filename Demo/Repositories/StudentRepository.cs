@@ -7,18 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Demo.Repositories
 {
-    internal class StudentRepository : IDisposable
+    internal class StudentRepository
     {
         private readonly StudentDbContext context;
 
-        public StudentRepository(DbConnection connection)
+        public StudentRepository(StudentDbContext context)
         {
-            var options = new DbContextOptionsBuilder<DbContext>()
-                .UseSqlite(connection)
-                .Options;
-
-            context = new StudentDbContext(options);
-            context.Database.EnsureCreated();
+            this.context = context;
         }
 
         public void Create(Student student)
@@ -35,11 +30,6 @@ namespace Demo.Repositories
         public Student Get(int id)
         {
             return context.Users.Include(s => s.Classes).Single(s => s.Id == id);
-        }
-
-        public void Dispose()
-        {
-            context.Dispose();
         }
     }
 }
