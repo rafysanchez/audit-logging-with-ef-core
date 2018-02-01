@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Demo.Models;
 using Demo.Reporting;
 using Demo.Repositories;
@@ -16,14 +18,17 @@ namespace Demo
 
                 var context = StudentDbContext.Create(connection);
 
+                var classes = new ClassRepository(context);
+                classes.Create(new Class {Id = 1, Name = "Math"});
+
                 var students = new StudentRepository(context);
+                var math = classes.Get(1);
                 var mathStudent = new Student
                 {
-                    var student = students.Get(1);
-                    student.Name = "student";
-                    student.Classes.Add(new Class { Id = 2, Name = "History" });
-                    students.Update(student);
-                }
+                    Id = 1,
+                    Name = "math student",
+                    Classes = new List<Class> {math}
+                };
                 students.Create(mathStudent);
 
                 var historyStudent = students.Get(1);
